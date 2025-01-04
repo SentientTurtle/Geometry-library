@@ -1,6 +1,8 @@
 #![allow(mixed_script_confusables)]
 
 pub mod scalar;
+
+#[rustfmt::skip]
 pub mod basis;
 pub mod vector;
 #[macro_use]

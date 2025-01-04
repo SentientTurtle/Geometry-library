@@ -46,6 +46,12 @@ impl<T, const N: usize, B: Basis<N>> VectorN<T, N, B> {
         &self.array
     }
 
+    /// Convert to a mutably-borrowed array
+    #[inline]
+    pub fn as_array_mut(&mut self) -> &mut [T; N] {
+        &mut self.array
+    }
+
     /// "Unwraps" this vector, yielding an array
     ///
     /// Acts as inverse to [`VectorN::new`]
@@ -182,7 +188,7 @@ impl<T, const N: usize, B: Basis<N>> IntoIterator for VectorN<T, N, B> {
 // TODO: Reference arithmetic
 
 // Vector-Vector Arithmetic
-impl<T: Scalar, const N: usize, B: Basis<N>> Neg for VectorN<T, N, B> {
+impl<T: Neg<Output=T>, const N: usize, B: Basis<N>> Neg for VectorN<T, N, B> {
     type Output = Self;
 
     fn neg(self) -> Self::Output {

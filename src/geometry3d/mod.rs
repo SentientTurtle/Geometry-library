@@ -61,6 +61,21 @@ impl<T: Sub<Output=T> + Mul<Output=T> + Copy, B: Basis<3>> Vector3D<T, B> {
 pub struct RotationMatrix<T, B: Basis<3>>([Vector3D<T, B>; 3]);
 
 impl<T, B: Basis<3>> RotationMatrix<T, B> {
+    #[inline]
+    pub(crate) fn from_inner<VB: Basis<3>>(column_major: [Vector3D<T, VB>; 3]) -> Self<> {
+        let [col1, col2, col3] = column_major;
+        RotationMatrix([
+            Vector3D::new(col1.array),
+            Vector3D::new(col2.array),
+            Vector3D::new(col3.array)
+        ])
+    }
+
+    #[inline]
+    pub(crate) fn to_inner(self) -> [Vector3D<T, B>; 3] {
+        self.0
+    }
+    
     /// Construct a new rotation matrix from a row-major set of 3x3 arrays
     ///
     /// # Arguments
@@ -151,6 +166,89 @@ impl<T, B: Basis<3>> RotationMatrix<T, B> {
             [r31, r32, r33]
         ]
     }
+    
+    /// Construct a new rotation matrix from a column-major set of 3x3 arrays
+    ///
+    /// # Arguments
+    ///
+    /// * `matrix`: Matrix data
+    ///
+    /// returns: RotMatrix<T>
+    ///
+    /// # Examples
+    /// ```
+    /// use unifiedgeometry::geometry3d::RotationMatrix;
+    ///
+    /// let x;
+    /// RotationMatrix::from_column_major([
+    ///     [1.0, 0.0, 0.0],
+    ///     [0.0, x.cos(), x.sin()],
+    ///     [0.0, -x.sin(), x.cos()]
+    /// ])
+    /// ```
+    /// Results in
+    /// ```text
+    /// ⎡1.0  0.0    0.0   ⎤
+    /// ⎢0.0 cos(x) -sin(x)⎥
+    /// ⎣0.0 sin(x) cos(x) ⎦
+    /// ```
+    #[inline]   // Inlining is likely to optimize the transposition away
+    pub fn from_column_major(matrix: [[T; 3]; 3]) -> RotationMatrix<T, B> {
+        let [col1, col2, col3] = matrix;
+
+        RotationMatrix([
+            Vector3D::new(col1),
+            Vector3D::new(col2),
+            Vector3D::new(col3)
+        ])
+    }
+
+    /// Construct a new rotation matrix from a column-major set of 3x3 arrays
+    ///
+    /// # Arguments
+    ///
+    /// * `matrix`: Matrix data
+    ///
+    /// returns: RotMatrix<T>
+    ///
+    /// # Examples
+    /// Given `matrix`
+    /// ```text
+    /// ⎡1.0  0.0    0.0   ⎤
+    /// ⎢0.0 cos(x) -sin(x)⎥
+    /// ⎣0.0 sin(x) cos(x) ⎦
+    /// ```
+    ///
+    /// ```
+    /// let (matrix, x);
+    /// let [
+    ///     [r11, r21, r31],
+    ///     [r12, r22, r32],
+    ///     [r13, r23, r33]
+    /// ] = matrix.to_column_major();
+    ///
+    /// assert_eq!(r11, 1.0);
+    /// assert_eq!(r21, 0.0);
+    /// assert_eq!(r31, 0.0);
+    /// 
+    /// assert_eq!(r12, 0.0);
+    /// assert_eq!(r22, x.cos());
+    /// assert_eq!(r32, x.sin());
+    /// 
+    /// assert_eq!(r13, 0.0);
+    /// assert_eq!(r23, -x.sin());
+    /// assert_eq!(r33, x.cos());
+    /// ```
+    #[inline]   // Inlining is likely to optimize the transposition away
+    pub fn to_column_major(self) -> [[T; 3]; 3] {
+        let [
+        Vector3D { array: col1, .. },
+        Vector3D { array: col2, .. },
+        Vector3D { array: col3, .. }
+        ] = self.0;
+
+        [col1, col2, col3]
+    }
 }
 
 impl<T: Scalar, B: Basis<3>> RotationMatrix<T, B> {
@@ -172,6 +270,44 @@ impl<T: Scalar, B: Basis<3>> RotationMatrix<T, B> {
         let [x, y, z] = vector.to_array();
 
         (matrix_x * x) + (matrix_y * y) + (matrix_z * z)
+    }
+
+    /**
+     * Factorization into extrinsic euler angles, in order X\*Y\*Z
+    
+     * TODO: Currently a stub implementation to provide values of appropriate type
+     */
+    // Algorithm from https://www.geometrictools.com/Documentation/EulerAngles.pdf
+    pub fn euler_factors(self) -> Option<[T; 3]> {
+        let [
+        [r11, r12, r13],
+        [r21, r22, r23],
+        [_r31, _r32, r33]
+        ] = self.to_row_major();
+
+        if r13 < T::i(1) {
+            if r13 > T::i(-1) {
+                Some([
+                    r13.asin().expect("r13 must be >-1 and <1, thus valid asin domain"),
+                    T::atan2(-r23, r33)?,
+                    T::atan2(-r12, r11)?
+                ])
+            } else {
+                // Gimbal lock
+                Some([
+                    -T::PI/T::i(2),
+                    -T::atan2(r21, r22)?,
+                    T::i(0)
+                ])
+            }
+        } else {
+            // Gimbal lock
+            Some([
+                T::PI/T::i(2),
+                T::atan2(r21, r22)?,
+                T::i(0)
+            ])
+        }
     }
 }
 

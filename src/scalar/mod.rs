@@ -4,7 +4,7 @@ use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssi
 /// Trait for Real number "scalar" types; Those that implement addition/subtraction/multiplication/division, as well as exponentiation.
 ///
 /// Additionally requires the following other traits:
-/// * Sized         (Used a component type)
+/// * Sized         (Used as component type)
 /// * Copy          (This trait does not support reference arithmetic. HRTBs are too clunky in current rust. This bound may be relaxed in the future)
 /// * PartialEq     ("Full" equality is not required to permit usage of floating point types)
 /// * PartialOrd    (Real number ordering)
@@ -53,7 +53,7 @@ pub trait Scalar:
     /// Constant value PI
     const PI: Self;
 
-    /// Integer literal
+    /// Integer literal         TODO: Rename back to from_int? Why is this short?
     fn i(literal: i32) -> Self;
     /// Floating point literal
     fn f(literal: f64) -> Self;
@@ -62,12 +62,19 @@ pub trait Scalar:
     fn sin(self) -> Self;
     /// Cosine, equivalent to [`f64::cos`]
     fn cos(self) -> Self;
-    /// Arc-cosine
-    /// Returns `None` if input is out of range
-    fn acos(self) -> Option<Self>;
+    /// Cosine, equivalent to [`f64::tan`]
+    fn tan(self) -> Self;
     /// Arc-sine
     /// Returns `None` if input is out of range
     fn asin(self) -> Option<Self>;
+    /// Arc-cosine
+    /// Returns `None` if input is out of range
+    fn acos(self) -> Option<Self>;
+    /// Arc-tangent
+    fn atan(self) -> Self;
+    /// Arc-tangent
+    /// Returns `None` if input is out of range
+    fn atan2(self, other: Self) -> Option<Self>;
 }
 
 impl Scalar for f32 {
@@ -95,11 +102,16 @@ impl Scalar for f32 {
     #[inline]
     fn cos(self) -> Self { f32::cos(self) }
     #[inline]
+    fn tan(self) -> Self { f32::tan(self) }
+
+    #[inline]
+    fn asin(self) -> Option<Self> { Some(f32::asin(self)).filter(|f| !f.is_nan()) }
+    #[inline]
     fn acos(self) -> Option<Self> { Some(f32::acos(self)).filter(|f| !f.is_nan()) }
     #[inline]
-    fn asin(self) -> Option<Self> {
-        Some(f32::asin(self)).filter(|f| !f.is_nan())
-    }
+    fn atan(self) -> Self { f32::atan(self) }
+    #[inline]
+    fn atan2(self, other: Self) -> Option<Self> { Some(f32::atan2(self, other)).filter(|f| !f.is_nan()) }
 }
 
 impl Scalar for f64 {
@@ -127,9 +139,14 @@ impl Scalar for f64 {
     #[inline]
     fn cos(self) -> Self { f64::cos(self) }
     #[inline]
+    fn tan(self) -> Self { f64::tan(self) }
+
+    #[inline]
+    fn asin(self) -> Option<Self> { Some(f64::asin(self)).filter(|f| !f.is_nan()) }
+    #[inline]
     fn acos(self) -> Option<Self> { Some(f64::acos(self)).filter(|f| !f.is_nan()) }
     #[inline]
-    fn asin(self) -> Option<Self> {
-        Some(f64::asin(self)).filter(|f| !f.is_nan())
-    }
+    fn atan(self) -> Self { f64::atan(self) }
+    #[inline]
+    fn atan2(self, other: Self) -> Option<Self> { Some(f64::atan2(self, other)).filter(|f| !f.is_nan()) }
 }
